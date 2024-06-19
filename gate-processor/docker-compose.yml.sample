@@ -1,0 +1,165 @@
+services:
+
+
+
+
+  gate-processor-incoming:
+    container_name: gate-processor-incoming
+    image: gate-processor
+    user: 1000:1000
+    build:
+      context: ./source_code/processor
+      dockerfile: Dockerfile
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./gate-incoming/saved_numberplates:/app/saved_numberplates
+      - ./gate-incoming/saved_videos:/app/saved_videos
+    environment:
+
+      # High Level Control
+      MODULE_NUMBERPLATE_READER: "true"                                                 # REQUIRED: This enables Numberplate detection and recognition module (For incoming cars)
+      ALLOWED_NUMBERPLATES_API: "http://gate-example-allowed-np:1234/allowed_np_list"   # REQUIRED: This container pulls this url to get allowed numberplate JSON array
+      OPENER_REQUEST_URL: "http://<Raspberry Pi IP>:6789/opengate"                      # REQUIRED: Raspberry Pi controls relay to open the gates
+
+      # Video and detections
+      CLOCK_ENABLED: "true" # OPTIONAL: By default clock is not printed by this software, sometimes its better to disable clock on the camera and print it after we applied detections
+      STATUS_LABELS: "ATIDARYTA,UZDARYTA,ISJUNGTAS" # OPTIONAL: Status stickers are English by default
+      INPUT_CAMERA_STREAM_URL: "rtsp://username:password@<numberplate camera>:554/Streaming/Channels/101/" # REQUIRED: This RTSP stream url to capture incoming cars numberplates
+      PROCESS_EVERY_N_TH_FRAME: 1 # OPTIONAL: To reduce load on the GPU, you could skip some frames
+      ZOOMED_IN_BOX: "[900,600,1900,1000]" # OPTIONAL: Zoomed in box location 
+
+      # Video file output
+      WRITE_TO_VIDEO_FILE_FILENAMESTART: "IN_detections_output" # OPTIONAL: Write detections to video file, for curiosity and debuging
+      WRITE_TO_VIDEO_FILE_VERBOSITY: 0 # OPTIONAL: 0 - means only triggered open events are recorded, 1 - means every single detection of LP will be recorded
+
+    ports:
+      - "3031:3030"
+    networks:
+      - external
+    restart: unless-stopped
+
+
+
+  # Optional: This container serves as an example to show how to supply this APNR with allowed numberplates list
+  gate-example-allowed-np:
+    container_name: gate-example-allowed-np
+    image: gate-example-allowed-np
+    user: 1000:1000
+    build:
+      context: ./example-allowed-np
+      dockerfile: Dockerfile
+    environment:
+      ALLOWED_NUMBERPLATES_URL: "/allowed_np_list"
+      ALLOWED_NUMBERPLATES_LIST: '["ABC123", "XYZ789"]'
+    ports:
+      - "1234:80"
+    networks:
+      - external
+    restart: unless-stopped
+
+
+
+
+
+
+
+  gate-processor-exiting:
+    container_name: gate-processor-exiting
+    image: gate-processor
+    user: 1000:1000
+    build:
+      context: ./source_code/processor
+      dockerfile: Dockerfile
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./gate-exiting/saved_videos:/app/saved_videos
+    environment:
+
+      # High Level Control
+      MODULE_OPEN_ZONES: "true"                                     # REQUIRED: This enables car/truck/motorcycle/person recognition module in the parking lot (For exiting cars)
+      OPENER_REQUEST_URL: "http://<Raspberry Pi IP>:6789/opengate"  # REQUIRED: Raspberry Pi controls relay to open the gates
+
+      # Video and detections
+      STATUS_LABEL_POS: "[55, 120]"
+      STATUS_LABELS: "ATIDARYTA,UZDARYTA,ISJUNGTAS"   # OPTIONAL: Status stickers are English by default
+      INPUT_CAMERA_STREAM_URL: "rtsp://username:password@<parking lot camera>:554/Streaming/Channels/101/" # REQUIRED: This RTSP stream url to capture exiting cars in parking lot
+      PROCESS_EVERY_N_TH_FRAME: 2       # OPTIONAL: To reduce load on the GPU, you could skip some frames
+      OPEN_BOX_POSITIONS: "[[0,290,475,400], [475,350,900,500], [900,400,1270,600]]" # REQUIRED: Box positions for car to enter and trigger open [[x1,y1,x2,y2], [x1,y1,x2,y2], [x1,y1,x2,y2]]
+
+      # Video file output
+      WRITE_TO_VIDEO_FILE_FILENAMESTART: "OUT_detections_output" # OPTIONAL: Write detections to video file, for curiosity and debuging
+      WRITE_TO_VIDEO_FILE_VERBOSITY: 0    # OPTIONAL: 0 - means only triggered open events are recorded, 1 - means every single detection of any object will be recorded
+
+    ports:
+      - "3030:3030"
+    networks:
+      - external
+    restart: unless-stopped
+
+
+
+
+
+
+
+
+
+  # Optional: Database to store numberplate pictures
+  # gate-processor-mysql:
+  #   container_name: gate-processor-mysql
+  #   image: mysql:8.4.0
+  #   user: 1000:1000
+  #   read_only: true
+  #   tmpfs:
+  #     - /run/mysqld:uid=999,gid=999
+  #     - /tmp
+  #   volumes:
+  #     - ./mysql:/var/lib/mysql
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: root
+  #     MYSQL_DATABASE: gateopener
+  #     MYSQL_USER: gateopener
+  #     MYSQL_PASSWORD: gateopener
+  #   networks:
+  #     - external
+  #   restart: unless-stopped
+
+
+
+
+
+  # Optional: Database browser
+  # gate-processor-dbgate:
+  #   container_name: gate-processor-dbgate
+  #   image: dbgate/dbgate:5.3.0-alpine
+  #   read_only: false
+  #   environment:
+  #     WEB_ROOT: /dbgate
+
+  #     LOGINS: admin
+  #     LOGIN_PASSWORD_admin: admin
+
+  #     CONNECTIONS: con4
+  #     LABEL_con4: Gateopener - DB
+  #     SERVER_con4: gate-processor-mysql
+  #     USER_con4: gateopener
+  #     PASSWORD_con4: gateopener
+  #     PORT_con4: 3306
+  #     ENGINE_con4: mysql@dbgate-plugin-mysql
+  #   ports:
+  #     - "80:3000"
+  #   networks:
+  #     - external
+  #   restart: unless-stopped
+
+
+
+
+networks:
+  external:
+    name: external
+    external: true
+    ipam:
+      config:
+        - subnet: 172.18.0.0/24
+          gateway: 172.18.0.1
