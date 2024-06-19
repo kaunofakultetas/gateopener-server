@@ -1,0 +1,21 @@
+gate-processor/mysql/*
+gate-processor/OLD/*
+
+gate-processor/docker-compose.yml
+gate-neural/docker-compose.yml
+
+gate-processor/gate-incoming/saved_numberplates/*
+gate-processor/gate-incoming/saved_videos/*
+gate-processor/gate-exiting/saved_numberplates/*
+gate-processor/gate-exiting/saved_videos/*
+
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+
+# Do not transfer neural models
+*.pt
+*.pt_OLD
