@@ -1,6 +1,6 @@
 # Gate opener using YOLOv7 and EasyOCR
 
-This repository contains the setup and deployment of gate opener with ANPR capabilities. The system which this project is deployed on Ubuntu 22.04 server and utilizes NVIDIA 3060Ti graphics card.
+This repository contains the setup and deployment of gate opener with ANPR capabilities. The system which this project is deployed on is Ubuntu 22.04 server and utilizes NVIDIA 3060Ti graphics card.
 
 <br/>
 <div align="center">
@@ -10,18 +10,17 @@ This repository contains the setup and deployment of gate opener with ANPR capab
 
 <br>
 
-## Getting Started
+## 1. Install dependencies
 
 ### Prerequisites
 
 Before starting this project you need to install into your system:
-- Nvidia Drivers 
-- Docker
-- Docker Compose
+- Docker and Docker Compose
+- Nvidia Drivers
 
 <br>
 
-### Docker and Docker Compose:
+### 1.1. Docker and Docker Compose:
 ```sh
 sudo curl -L https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
@@ -30,7 +29,7 @@ sudo apt install -y docker.io
 
 <br>
 
-### NVIDIA drivers:
+### 1.2. NVIDIA drivers:
 ```sh
 curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
 && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
@@ -46,37 +45,37 @@ sudo apt install nvidia-driver-535
 sudo reboot
 ```
 
-### Test the system and if everything is ok - proceed
+### 1.3. Test the system and if everything is ok - proceed
 ```sh
 sudo docker run --rm --runtime=nvidia --gpus all ubuntu nvidia-smi
 ```
 
 <br>
 
-### Building and Running the Container Stacks
+## 2. Building and Running the Container Stacks
 
-1. **Clone the repository**:
-    ```sh
-    git clone https://github.com/kaunofakultetas/gateopener-server.git
-    cd gateopener-server
-    ```
+### 2.1. **Clone the repository**: 
+```sh
+git clone https://github.com/kaunofakultetas/gateopener-server.git
+cd gateopener-server
+```
 
 
-2. **Start the neural network containers**:
-    ```sh
-    cd gate-neural
-    ./runUpdateThisStack.sh
-    cd ..
-    ```
+### 2.2. **Start the neural network containers**:
+```sh
+cd gate-neural
+./runUpdateThisStack.sh
+cd ..
+```
 
-3. **Edit the processing stack environment variables and start containers**:
-    ```sh
-    cd gate-processor
-    cp docker-compose.yml.sample docker-compose.yml
-    nano docker-compose.yml
-    ./runUpdateThisStack.sh
-    cd ..
-    ```
+### 2.3. **Edit the processing stack environment variables and start containers**:
+```sh
+cd gate-processor
+cp docker-compose.yml.sample docker-compose.yml
+nano docker-compose.yml
+./runUpdateThisStack.sh
+cd ..
+```
 
 <br>
 
