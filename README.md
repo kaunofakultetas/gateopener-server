@@ -4,8 +4,8 @@ This repository contains the setup and deployment of gate opener with ANPR capab
 
 <br/>
 <div align="center">
-  <img  src="https://github.com/KaunoFakultetas/gateopener-server/blob/main/docs/media/IncomingCars.gif?raw=true "width="288" height="192" alt="demo1">
-  <img  src="https://github.com/KaunoFakultetas/gateopener-server/blob/main/docs/media/ExitingCars.gif?raw=true" width="288" height="192" alt="demo2">
+  <img  src="https://github.com/KaunoFakultetas/gateopener-server/blob/main/docs/media/IncomingCars.gif?raw=true "width="360" height="240" alt="demo1">
+  <img  src="https://github.com/KaunoFakultetas/gateopener-server/blob/main/docs/media/ExitingCars.gif?raw=true" width="360" height="240" alt="demo2">
 </div>
 
 <br>
