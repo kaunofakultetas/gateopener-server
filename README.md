@@ -46,6 +46,11 @@ sudo apt install nvidia-driver-535
 sudo reboot
 ```
 
+### Test the system and if everything is ok - proceed
+```sh
+sudo docker run --rm --runtime=nvidia --gpus all ubuntu nvidia-smi
+```
+
 <br>
 
 ### Building and Running the Container Stacks
