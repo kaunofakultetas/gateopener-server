@@ -10,6 +10,13 @@ This repository contains the setup and deployment of gate opener with ANPR capab
 
 <br>
 
+## Overall structure
+<div align="center">
+  <img  src="https://github.com/KaunoFakultetas/gateopener-server/blob/main/docs/media/Structure.png?raw=true" alt="structure">
+</div>
+
+<br>
+
 ## 1. Install dependencies
 
 ### Prerequisites
