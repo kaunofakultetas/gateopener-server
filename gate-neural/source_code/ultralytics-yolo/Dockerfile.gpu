@@ -1,0 +1,11 @@
+FROM ultralytics/ultralytics:8.2.59
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir          \
+    "imagezmq==1.1.1"                   \
+    "dill==0.3.8"
+
+COPY . .
+
+CMD ["python3", "-u", "detect.py"]

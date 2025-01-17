@@ -1,79 +1,125 @@
 services:
 
-  neural-np-easyocr:
-    container_name: neural-np-easyocr
-    image: neural-np-easyocr
+
+  # Using YOLO11 from Ultralytics to apply OCR on the numberplates
+  neural-np-ocr:
+    container_name: neural-np-ocr
+    image: neural-ultralytics
     build:
-      context: ./source_code/np-easyocr
-      dockerfile: Dockerfile
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+      context: ./source_code/ultralytics-yolo
+      dockerfile: Dockerfile.cpu
+    environment:
+      DETECT_WEIGHTS: ./neural_networks/yolo11n-np-ocr.pt
+      DETECT_IMGSZ: "320"
+      DETECT_CONF_THRES: "0.30"
+      DETECT_IOU_THRES: "0.7"
+
+    # # Uncomment using NVIDIA GPU
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+    volumes:
+      - ./yolo-np-ocr:/app/neural_networks
     networks:
       - external
     restart: unless-stopped
 
 
 
+
+  # Using YOLO11 from Ultralytics
   neural-objects:
     container_name: neural-objects
-    image: neural-yolov7
+    image: neural-ultralytics
     build:
-      context: ./source_code/yolov7
-      dockerfile: Dockerfile
+      context: ./source_code/ultralytics-yolo
+      dockerfile: Dockerfile.cpu
     environment:
-      DETECT_WEIGHTS: ./neural_networks/yolov7.pt
-      # DETECT_WEIGHTS: ./neural_networks/yolov7-e6e.pt
-      # DETECT_WEIGHTS: ./neural_networks/yolov7-tiny.pt
-      DETECT_RECREATE_TRACE_MODEL: "False"
-      DETECT_TRACED_MODEL_PATH: ./neural_networks/tracedmodel_OUT.pt
+      DETECT_WEIGHTS: yolo11l.pt
       DETECT_IMGSZ: "320"
-      DETECT_CONF_THRES: "0.5"
-      DETECT_IOU_THRES: "0.45"
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-    volumes:
-      - ./yolov7-objects:/app/neural_networks
+      DETECT_CONF_THRES: "0.40"
+
+    # # Uncomment using NVIDIA GPU
+    # deploy:
+    #  resources:
+    #    reservations:
+    #      devices:
+    #        - driver: nvidia
+    #          count: all
+    #          capabilities: [gpu]
+
     networks:
       - external
     restart: unless-stopped
 
 
 
+
+  # Using YOLO11 from Ultralytics
   neural-np-location:
     container_name: neural-np-location
-    image: neural-yolov7
+    image: neural-ultralytics
     build:
-      context: ./source_code/yolov7
-      dockerfile: Dockerfile
+      context: ./source_code/ultralytics-yolo
+      dockerfile: Dockerfile.cpu
     environment:
-      DETECT_WEIGHTS: ./neural_networks/LP_detect_yolov7_500img.pt
-      DETECT_RECREATE_TRACE_MODEL: "False"
-      DETECT_TRACED_MODEL_PATH: ./neural_networks/tracedmodel_IN.pt
-      DETECT_IMGSZ: "1024"
-      DETECT_CONF_THRES: "0.40"
-      DETECT_IOU_THRES: "0.45"
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+      DETECT_WEIGHTS: ./neural_networks/yolo11n-np-v3.pt
+      DETECT_IMGSZ: "640"
+      DETECT_CONF_THRES: "0.20"
+      DETECT_IOU_THRES: "0.05"
+
+    # # Uncomment using NVIDIA GPU
+    # deploy:
+    #  resources:
+    #    reservations:
+    #      devices:
+    #        - driver: nvidia
+    #          count: all
+    #          capabilities: [gpu]
+
     volumes:
-      - ./yolov7-np-location:/app/neural_networks
+      - ./yolo-np:/app/neural_networks
     networks:
       - external
     restart: unless-stopped
+
+
+
+
+  # Using YOLOv10 from Ultralytics to apply OCR on the numberplates
+  neural-np-ocr-best:
+    container_name: neural-np-ocr-best
+    image: neural-ultralytics
+    build:
+      context: ./source_code/ultralytics-yolo
+      dockerfile: Dockerfile.cpu
+    environment:
+      DETECT_WEIGHTS: ./neural_networks/yolov10x-np-ocr.pt
+      DETECT_IMGSZ: "320"
+      DETECT_CONF_THRES: "0.45"
+      DETECT_IOU_THRES: "0.7"
+
+    # # Uncomment using NVIDIA GPU
+    # deploy:
+    #  resources:
+    #    reservations:
+    #      devices:
+    #        - driver: nvidia
+    #          count: all
+    #          capabilities: [gpu]
+
+    volumes:
+      - ./yolo-np-ocr:/app/neural_networks
+    networks:
+      - external
+    restart: unless-stopped
+
+
 
 
 networks:

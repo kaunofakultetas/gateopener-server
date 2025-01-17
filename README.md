@@ -1,6 +1,6 @@
-# Gate opener using YOLOv7 and EasyOCR
+# Gate opener using Ultralytics YOLO11
 
-This repository contains the setup and deployment of gate opener with ANPR capabilities. The system which this project is deployed on is Ubuntu 22.04 server and utilizes NVIDIA 3060Ti graphics card.
+This repository contains the setup and deployment of gate opener with ANPR capabilities. The system which this project is deployed on is Ubuntu 24.04.1 LTS server and running on CPU.
 
 <br/>
 <div align="center">
@@ -22,14 +22,14 @@ Before starting this project you need to install into your system:
 
 ### 1.1. Docker and Docker Compose:
 ```sh
-sudo curl -L https://github.com/docker/compose/releases/download/v2.26.1/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+sudo curl -L https://github.com/docker/compose/releases/download/v2.32.4/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
 sudo apt install -y docker.io
 ```
 
 <br>
 
-### 1.2. NVIDIA drivers:
+### 1.2. NVIDIA drivers (ONLY IF YOU PLAN USING GPU):
 ```sh
 curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
 && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
@@ -45,7 +45,7 @@ sudo apt install nvidia-driver-535
 sudo reboot
 ```
 
-### 1.3. Test the system and if everything is ok - proceed
+### 1.2.1. Test the NVIDIA GPU and if everything is ok - proceed
 ```sh
 sudo docker run --rm --runtime=nvidia --gpus all ubuntu nvidia-smi
 ```
@@ -82,13 +82,3 @@ cd ..
 ## Contributing
 
 Feel free to submit issues and pull requests.
-
-<br>
-
-## Acknowledgements
-
-- [YOLOv7 creators and orginal implementation developer](https://github.com/WongKinYiu/yolov7)
-- [YOLOv7 modified model creator to detect numberplates](https://github.com/mrzaizai2k/License-Plate-Recognition-YOLOv7-and-CNN)
-- The open-source community for their continuous contributions.
-
-

@@ -13,7 +13,7 @@ import imagezmq
 import zmq
 
 
-# ImageZMQ tutorialas
+# ImageZMQ tutorial:
 # https://pyimagesearch.com/2019/04/15/live-video-streaming-over-network-with-opencv-and-imagezmq/
 
 
@@ -75,45 +75,178 @@ def frameSkipper_iter():
 
 
 # +--------------------------------------------------+
-# +----------------- Video file writer --------------+
+# +--------- Detections video file writer -----------+
 # +--------------------------------------------------+
 # ENV's
-WRITE_TO_VIDEO_FILE_FILENAMESTART = os.getenv('WRITE_TO_VIDEO_FILE_FILENAMESTART', None)
-WRITE_SECONDS_BEFORE_TRIGGER = int(os.getenv('WRITE_SECONDS_BEFORE_TRIGGER', 7))
-WRITE_TO_VIDEO_FILE_VERBOSITY = int(os.getenv('WRITE_TO_VIDEO_FILE_VERBOSITY', 0))
+WRITE_DET_TO_VIDEO_FILE_FILENAMESTART = os.getenv('WRITE_DET_TO_VIDEO_FILE_FILENAMESTART', None)
+WRITE_DET_SECONDS_BEFORE_TRIGGER = int(os.getenv('WRITE_DET_SECONDS_BEFORE_TRIGGER', 7))
+WRITE_DET_TO_VIDEO_FILE_VERBOSITY = int(os.getenv('WRITE_DET_TO_VIDEO_FILE_VERBOSITY', 0))
+WRITE_DET_FULL_QUALITY = int(os.getenv('WRITE_DET_FULL_QUALITY', 0))
+
+
+video_input_resolution = [int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))]
+video_input_pixel_count = video_input_resolution[0] * video_input_resolution[1]
+
+det_video_resolution = (video_input_resolution[0], video_input_resolution[1])
+det_video_filename, det_video_fourcc, det_video_out = None, None, None
+detVideoFramesDeque = collections.deque(maxlen=int((CAMERA_STREAM_FRAMERATE*WRITE_DET_SECONDS_BEFORE_TRIGGER)/PROCESS_EVERY_N_TH_FRAME))
 
 
 
-resolution = [int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))]
+# Delete old and empty video files
+timestamp_now = time.time()
+timestamp_days_ago = timestamp_now - 14 * 86400  # X days in seconds
+if WRITE_DET_TO_VIDEO_FILE_FILENAMESTART is not None:
+    for filename in os.listdir('./saved_videos'):
+        if filename.startswith(WRITE_DET_TO_VIDEO_FILE_FILENAMESTART):
+            file_path = os.path.join('./saved_videos', filename)
+            if os.path.isfile(file_path):
+                file_modification_time = os.path.getmtime(file_path)  # Use modification time
+                
+                # Check if the file is older than X days
+                if file_modification_time < timestamp_days_ago:
+                    print(f"Deleting old file: {file_path}")
+                    os.remove(file_path)
+                
+                # Delete empty files
+                elif os.path.getsize(file_path) < 1*1024*1024:  # Less than 1MB
+                    print(f"Deleting empty file: {file_path}")
+                    os.remove(file_path)
 
-filename, fourcc, out = None, None, None
-if(WRITE_TO_VIDEO_FILE_FILENAMESTART is not None):
+
+
+
+if(WRITE_DET_TO_VIDEO_FILE_FILENAMESTART is not None):
     timeNow = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
-    filename = f'./saved_videos/{WRITE_TO_VIDEO_FILE_FILENAMESTART}_{timeNow}.avi'
-    fourcc = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter(filename, fourcc, int(CAMERA_STREAM_FRAMERATE/PROCESS_EVERY_N_TH_FRAME), (resolution[0],resolution[1]))
+    det_video_filename = f'./saved_videos/{WRITE_DET_TO_VIDEO_FILE_FILENAMESTART}_{timeNow}.avi'
+    det_video_fourcc = cv2.VideoWriter_fourcc(*'XVID')
+
+    if not WRITE_DET_FULL_QUALITY:
+        new_height = 720
+        aspect_ratio = video_input_resolution[0] / video_input_resolution[1]
+        new_width = int(new_height * aspect_ratio)
+        det_video_resolution = (new_width, new_height)
+
+    det_video_out = cv2.VideoWriter(det_video_filename, det_video_fourcc, int(CAMERA_STREAM_FRAMERATE/PROCESS_EVERY_N_TH_FRAME), det_video_resolution)
 
 
 
-videoFramesDeque = collections.deque(maxlen=CAMERA_STREAM_FRAMERATE*WRITE_SECONDS_BEFORE_TRIGGER)
-def videoWriterToFile_iter(frame, triggerOpen, triggerDetect):
-    if(WRITE_TO_VIDEO_FILE_FILENAMESTART is not None):
-        videoFramesDeque.append(frame)
+def detVideoWriterToFile_iter(frame, triggerOpen, triggerDetect):
+    if(WRITE_DET_TO_VIDEO_FILE_FILENAMESTART is not None):
+        frame_tmp = frame.copy()
+        
+        if not WRITE_DET_FULL_QUALITY:
+            frame_tmp = cv2.resize(frame_tmp, det_video_resolution)
+        detVideoFramesDeque.append(frame_tmp)
         
         dumpDeque = False
         if(triggerOpen):
             dumpDeque = True
-        elif(triggerDetect and WRITE_TO_VIDEO_FILE_VERBOSITY == 1):
+        elif(triggerDetect and WRITE_DET_TO_VIDEO_FILE_VERBOSITY == 1):
             dumpDeque = True
 
         if(dumpDeque):
-            for videoFrameFromDeque in list(videoFramesDeque):
-                videoFramesDeque.popleft()
-                out.write(videoFrameFromDeque)
+            for videoFrameFromDeque in list(detVideoFramesDeque):
+                detVideoFramesDeque.popleft()
+                det_video_out.write(videoFrameFromDeque)
 
 # +--------------------------------------------------+
 # +--------------------------------------------------+
 # +--------------------------------------------------+
+
+
+
+
+
+
+
+
+
+
+
+# +--------------------------------------------------+
+# +------------- Raw video file writer --------------+
+# +--------------------------------------------------+
+# ENV's
+WRITE_RAW_TO_VIDEO_FILE_FILENAMESTART = os.getenv('WRITE_RAW_TO_VIDEO_FILE_FILENAMESTART', None)
+WRITE_RAW_SECONDS_BEFORE_TRIGGER = int(os.getenv('WRITE_RAW_SECONDS_BEFORE_TRIGGER', 7))
+WRITE_RAW_TO_VIDEO_FILE_VERBOSITY = int(os.getenv('WRITE_RAW_TO_VIDEO_FILE_VERBOSITY', 0))
+WRITE_RAW_FULL_QUALITY = int(os.getenv('WRITE_RAW_FULL_QUALITY', 0))
+
+
+
+video_input_resolution = [int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))]
+raw_out_resolution = (video_input_resolution[0], video_input_resolution[1])
+raw_video_filename, raw_video_fourcc, raw_video_out = None, None, None
+rawVideoFramesDeque = collections.deque(maxlen=int((CAMERA_STREAM_FRAMERATE*WRITE_RAW_SECONDS_BEFORE_TRIGGER)/PROCESS_EVERY_N_TH_FRAME))
+
+
+
+
+# Delete old and empty video files
+timestamp_now = time.time()
+timestamp_days_ago = timestamp_now - 14 * 86400  # X days in seconds
+if WRITE_RAW_TO_VIDEO_FILE_FILENAMESTART is not None:
+    for filename in os.listdir('./saved_videos'):
+        if filename.startswith(WRITE_RAW_TO_VIDEO_FILE_FILENAMESTART):
+            file_path = os.path.join('./saved_videos', filename)
+            if os.path.isfile(file_path):
+                file_modification_time = os.path.getmtime(file_path)  # Use modification time
+                
+                # Check if the file is older than X days
+                if file_modification_time < timestamp_days_ago:
+                    print(f"Deleting old file: {file_path}")
+                    os.remove(file_path)
+                
+                # Delete empty files
+                elif os.path.getsize(file_path) < 1*1024*1024:  # Less than 1MB
+                    print(f"Deleting empty file: {file_path}")
+                    os.remove(file_path)
+
+
+
+
+if(WRITE_RAW_TO_VIDEO_FILE_FILENAMESTART is not None):
+    timeNow = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+    raw_video_filename = f'./saved_videos/{WRITE_RAW_TO_VIDEO_FILE_FILENAMESTART}_{timeNow}.avi'
+    raw_video_fourcc = cv2.VideoWriter_fourcc(*'XVID')
+
+    if not WRITE_RAW_FULL_QUALITY:
+        new_height = 720
+        aspect_ratio = video_input_resolution[0] / video_input_resolution[1]
+        new_width = int(new_height * aspect_ratio)
+        raw_out_resolution = (new_width, new_height)
+
+    raw_video_out = cv2.VideoWriter(raw_video_filename, raw_video_fourcc, int(CAMERA_STREAM_FRAMERATE/PROCESS_EVERY_N_TH_FRAME), raw_out_resolution)
+
+
+
+def rawVideoWriterToFile_iter(frame, triggerOpen, triggerDetect):
+    if(WRITE_RAW_TO_VIDEO_FILE_FILENAMESTART is not None):
+        frame_tmp = frame.copy()
+        
+        if not WRITE_RAW_FULL_QUALITY:
+            frame_tmp = cv2.resize(frame_tmp, raw_out_resolution)
+        rawVideoFramesDeque.append(frame_tmp)
+        
+        dumpDeque = False
+        if(triggerOpen):
+            dumpDeque = True
+        elif(triggerDetect and WRITE_RAW_TO_VIDEO_FILE_VERBOSITY == 1):
+            dumpDeque = True
+
+        if(dumpDeque):
+            for videoFrameFromDeque in list(rawVideoFramesDeque):
+                rawVideoFramesDeque.popleft()
+                raw_video_out.write(videoFrameFromDeque)
+
+# +--------------------------------------------------+
+# +--------------------------------------------------+
+# +--------------------------------------------------+
+
+
+
+
 
 
 
@@ -128,12 +261,30 @@ def videoWriterToFile_iter(frame, triggerOpen, triggerDetect):
 # +------------ Live Detections Streamer ------------+
 # +--------------------------------------------------+
 # ENV's
+STREAM_FULL_QUALITY = int(os.getenv('STREAM_FULL_QUALITY', 0))
+
+
 streamer = Streamer(3030, False)
 streamer.start_streaming()
 
+
+
+stream_resolution = (video_input_resolution[0], video_input_resolution[1])
+if not STREAM_FULL_QUALITY:
+    new_height = 720
+    aspect_ratio = video_input_resolution[0] / video_input_resolution[1]
+    new_width = int(new_height * aspect_ratio)
+    stream_resolution = (new_width, new_height)
+
+
 # Stream video through flask streamer
 def liveDetectionsStreamer_iter(frame):
-    streamer.update_frame(frame)
+    frame_tmp = frame.copy()
+
+    if(not STREAM_FULL_QUALITY):
+        frame_tmp = cv2.resize(frame_tmp, stream_resolution)
+
+    streamer.update_frame(frame_tmp)
 
 # +--------------------------------------------------+
 # +--------------------------------------------------+
@@ -162,13 +313,11 @@ def liveDetectionsStreamer_iter(frame):
 # +--------------------------------------------------+
 # ENV's
 MODULE_OPEN_ZONES =  os.getenv('MODULE_OPEN_ZONES', "false").lower() == "true"
-NEURAL_OBJECTS_HOST_PORT = "neural-objects:5555"
+NEURAL_OBJECTS_HOST_PORT = os.getenv('NEURAL_OBJECTS_HOST_PORT', "neural-objects:5555")
 OPEN_BOX_POSITIONS = json.loads(os.getenv('OPEN_BOX_POSITIONS')) if os.getenv('OPEN_BOX_POSITIONS') else None
-# OPEN_BOX_POSITIONS = [
-#     [0, 290, 475, 400],
-#     [475, 350, 900, 500],
-#     [900, 400, 1270, 600]
-# ]
+
+
+
 
 
 # Create an ImageSender object
@@ -181,8 +330,8 @@ if(MODULE_OPEN_ZONES):
 def neuralObjectsDetector_sendFrame(frame):
     response = sender.send_image("camera1", frame)
     sender.zmq_socket.setsockopt(zmq.LINGER, 0)  # prevents ZMQ hang on exit
-    sender.zmq_socket.setsockopt(zmq.RCVTIMEO, 300 )  # will raise a ZMQError exception after x ms
-    sender.zmq_socket.setsockopt(zmq.SNDTIMEO, 300 )  # will raise a ZMQError exception after x ms
+    sender.zmq_socket.setsockopt(zmq.RCVTIMEO, 800 )  # will raise a ZMQError exception after x ms
+    sender.zmq_socket.setsockopt(zmq.SNDTIMEO, 800 )  # will raise a ZMQError exception after x ms
 
     # Received information from neural processing
     responseJson = json.loads(response.decode('utf-8'))
@@ -263,8 +412,8 @@ if(MODULE_NUMBERPLATE_READER):
 def neuralLPDetector_sendFrame(frame):
     response = senderNpDetector.send_image("camera1", frame)
     senderNpDetector.zmq_socket.setsockopt(zmq.LINGER, 0)  # prevents ZMQ hang on exit
-    senderNpDetector.zmq_socket.setsockopt(zmq.RCVTIMEO, 300 )  # will raise a ZMQError exception after x ms
-    senderNpDetector.zmq_socket.setsockopt(zmq.SNDTIMEO, 300 )  # will raise a ZMQError exception after x ms
+    senderNpDetector.zmq_socket.setsockopt(zmq.RCVTIMEO, 500 )  # will raise a ZMQError exception after x ms
+    senderNpDetector.zmq_socket.setsockopt(zmq.SNDTIMEO, 500 )  # will raise a ZMQError exception after x ms
 
     # Received information from neural processing
     responseJson = json.loads(response.decode('utf-8'))
@@ -277,8 +426,8 @@ def neuralLPDetector_sendFrame(frame):
 def neuralLPReader_sendFrame(frame):
     response = senderNpReader.send_image("camera1", frame)
     senderNpReader.zmq_socket.setsockopt(zmq.LINGER, 0)  # prevents ZMQ hang on exit
-    senderNpReader.zmq_socket.setsockopt(zmq.RCVTIMEO, 300 )  # will raise a ZMQError exception after x ms
-    senderNpReader.zmq_socket.setsockopt(zmq.SNDTIMEO, 300 )  # will raise a ZMQError exception after x ms
+    senderNpReader.zmq_socket.setsockopt(zmq.RCVTIMEO, 500 )  # will raise a ZMQError exception after x ms
+    senderNpReader.zmq_socket.setsockopt(zmq.SNDTIMEO, 500 )  # will raise a ZMQError exception after x ms
 
     # Received information from neural processing
     responseJson = json.loads(response.decode('utf-8'))
@@ -293,12 +442,16 @@ def processNumberplateDetections(frame, NP_detectionsJson, detectionOffset=[0,0]
     capturedNumberplate = ""
     triggerGateOpenSignal = False
     somethingDetected = False
+    biggestDetectionPixelCount = 0
 
 
     for detectionJson in NP_detectionsJson:
         detectionName, detectionConfidence, detectionBox = detectionJson['class'], detectionJson['confidence'], detectionJson['bbox']
         x1, y1 = detectionBox['x1'] + detectionOffset[0], detectionBox['y1'] + detectionOffset[1]
         x2, y2 = detectionBox['x2'] + detectionOffset[0], detectionBox['y2'] + detectionOffset[1]
+
+        if(biggestDetectionPixelCount < (x2-x1)*(y2-y1)):
+            biggestDetectionPixelCount = (x2-x1)*(y2-y1)
 
 
         numberplateReading = ""
@@ -312,11 +465,21 @@ def processNumberplateDetections(frame, NP_detectionsJson, detectionOffset=[0,0]
             cv2.imwrite(f'./saved_numberplates/{timeNow}_{md5_hash[:16]}.jpg', cropped_np_image)
 
             # Preprocess cropped numberplate image
-            cropped_np_image = preprocess_image(cropped_np_image)
+            # cropped_np_image = preprocess_image(cropped_np_image)
 
             # Send cropped numberplate for OCR reading
             NP_detectionTextJson = neuralLPReader_sendFrame(cropped_np_image)
-            numberplateReading = NP_detectionTextJson["detection"]
+
+            # V1
+            # numberplateReading = NP_detectionTextJson["detection"] 
+
+            # V2
+            sorted_detections = sorted(NP_detectionTextJson, key=lambda char: char['bbox']['x1'])
+            numberplateReading = ''.join(char['class'] for char in sorted_detections)
+            
+
+
+            
             # print(json.dumps(NP_detectionTextJson, indent=4))
             
             if(len(numberplateReading) > 2):
@@ -341,14 +504,12 @@ def processNumberplateDetections(frame, NP_detectionsJson, detectionOffset=[0,0]
 
     # Zoomed In box on the screen
     if(ZOOMED_IN_BOX is not None):
-        plot_one_box(ZOOMED_IN_BOX, frame, label="Zoomed IN Box", color=(255, 0, 0), text_color=(255, 255, 255), line_thickness=2)           
+        plot_one_box(ZOOMED_IN_BOX, frame, label="Zoomed IN Box", color=(255, 0, 0), text_color=(255, 255, 255), line_thickness=3)           
 
-    return frame, capturedNumberplate, triggerGateOpenSignal, somethingDetected
+    return frame, capturedNumberplate, triggerGateOpenSignal, somethingDetected, biggestDetectionPixelCount
 # +--------------------------------------------------+
 # +--------------------------------------------------+
 # +--------------------------------------------------+
-
-
 
 
 
@@ -365,7 +526,8 @@ def processNumberplateDetections(frame, NP_detectionsJson, detectionOffset=[0,0]
 # +--------------------------------------------------+
 # Env's
 MODULE_ENABLED_GATE_OPENER = True # Gate Opener API (Raspberry Pi)
-OPENER_REQUEST_LIMITER_FRAME_COUNT = int(os.getenv('OPENER_REQUEST_LIMITER_FRAME_COUNT', 50))
+OPENER_REQUEST_LIMITER_SECONDS = int(os.getenv('OPENER_REQUEST_LIMITER_SECONDS', 5))
+
 OPENER_REQUEST_URL = os.getenv('OPENER_REQUEST_URL', None)
 
 
@@ -377,6 +539,9 @@ STATUS_LABEL_DISABLED = os.getenv('STATUS_LABELS', "OPENED,CLOSED,DISABLED").spl
 
 CLOCK_ENABLED =         os.getenv('CLOCK_ENABLED', "false").lower() == "true"
 CLOCK_LABEL_POS =       json.loads(os.getenv('STATUS_LABEL_POS')) if os.getenv('STATUS_LABEL_POS') else [100, 130]
+
+
+OPENER_REQUEST_LIMITER_FRAME_COUNT = int((OPENER_REQUEST_LIMITER_SECONDS * CAMERA_STREAM_FRAMERATE)/PROCESS_EVERY_N_TH_FRAME)
 
 
 if OPENER_REQUEST_URL is None:
@@ -392,6 +557,11 @@ def openRequestSender_iter(frame, triggerGateOpenSignal, capturedNumberplate="")
     # Status Label and request sender to Rasp Pi
     backgroundColor = [0, 0, 255] # Red
     label = STATUS_LABEL_CLOSED
+
+
+    if(openRequestLimiter > 0):
+        openRequestLimiter -= 1
+
     
     if(MODULE_ENABLED_GATE_OPENER):
 
@@ -661,31 +831,27 @@ while True:
 
     # Get next frame from camera
     frame = cameraVideoPuller_getNext()
-
+    
 
     # Kill process if antifreeze function is no loger triggered
     antifreezer_iter()
-
-
-    if(openRequestLimiter > 0):
-        openRequestLimiter -= 1
-
 
 
     # Process every n'th frame depending on the required framerate
     if(frameSkipper_iter()):
         continue
 
-
-
+    raw_frame = frame.copy()
     somethingDetected = False
+    biggestDetectionPixelCount = 0
 
     # Send frame for processing (search numberplate location)
+    
     if(MODULE_NUMBERPLATE_READER):
 
-        # Update allowed numberplate list
+        # Update allowed numberplate list every 5 minutes
         updateAllowedFrameCounter += 1
-        if(updateAllowedFrameCounter % 15000 == 0):
+        if(updateAllowedFrameCounter % int((300 * CAMERA_STREAM_FRAMERATE)/PROCESS_EVERY_N_TH_FRAME) == 0):
             try:
                 allowedNumberPlates = json.loads(requests.get(ALLOWED_NUMBERPLATES_API).text)
             except:
@@ -693,6 +859,7 @@ while True:
 
         # Send frame to search for numberplates
         NP_detectionsJson = neuralLPDetector_sendFrame(frame)
+
 
         # If no detections on the normal frame - check zoomed in frame
         detectionOffset = [0, 0]
@@ -707,7 +874,7 @@ while True:
 
 
         # Check all numberplate detections in the frame
-        frame, capturedNumberplate, triggerGateOpenSignal, somethingDetected = processNumberplateDetections(frame, NP_detectionsJson, detectionOffset)
+        frame, capturedNumberplate, triggerGateOpenSignal, somethingDetected, biggestDetectionPixelCount = processNumberplateDetections(frame, NP_detectionsJson, detectionOffset)
    
         # Send signal to Raspberry pi and print status labels
         frame = openRequestSender_iter(frame, triggerGateOpenSignal, capturedNumberplate)
@@ -728,7 +895,7 @@ while True:
             plot_one_box([x1, y1, x2, y2], frame, color=(0, 255, 0), label=label)
 
             
-            if(detectionName in ['car', 'truck', 'motorcycle']):
+            if(detectionName in ['car', 'truck', 'motorcycle', 'bus']):
                 size_xy = (x2 - x1, y2 - y1)
 
                 if((size_xy[0] > 200 and size_xy[1] > 100) or detectionName == 'motorcycle'):
@@ -754,9 +921,13 @@ while True:
     # Clock Writer on the screen   
     frame = printClockOnScreen(frame)
 
+
     # Write detection results to file
-    videoWriterToFile_iter(frame, openRequestLimiter > 0, somethingDetected)
+    biggestDetectionFractionOfScreen = biggestDetectionPixelCount*1.0/video_input_pixel_count
+    detVideoWriterToFile_iter(frame, openRequestLimiter > 0 or biggestDetectionFractionOfScreen > 0.02, somethingDetected)
+    rawVideoWriterToFile_iter(raw_frame, openRequestLimiter > 0 or biggestDetectionFractionOfScreen > 0.02, somethingDetected)
     
+
     # Stream video through flask streamer
     liveDetectionsStreamer_iter(frame)
 
