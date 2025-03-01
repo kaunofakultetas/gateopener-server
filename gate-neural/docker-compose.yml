@@ -44,6 +44,10 @@ services:
       DETECT_IMGSZ: "320"
       DETECT_CONF_THRES: "0.40"
 
+      # DETECT_WEIGHTS: yolo12l.pt
+      # DETECT_IMGSZ: "320"
+      # DETECT_CONF_THRES: "0.40"
+
     # # Uncomment using NVIDIA GPU
     # deploy:
     #  resources:
@@ -72,6 +76,11 @@ services:
       DETECT_IMGSZ: "640"
       DETECT_CONF_THRES: "0.20"
       DETECT_IOU_THRES: "0.05"
+
+      # DETECT_WEIGHTS: ./neural_networks/yolo12n-np-v1.pt
+      # DETECT_IMGSZ: "640"
+      # DETECT_CONF_THRES: "0.20"
+      # DETECT_IOU_THRES: "0.05"
 
     # # Uncomment using NVIDIA GPU
     # deploy:

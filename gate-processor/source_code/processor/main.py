@@ -18,7 +18,8 @@ import zmq
 
 
 
-
+# ENV's
+SAVE_NUMBERPLATE_IMAGES = os.getenv('SAVE_NUMBERPLATE_IMAGES', "false").lower() == "true"
 
 
 
@@ -378,6 +379,7 @@ def gate_opener_drawOpenBoxPositions(frame):
 # +--------------------------------------------------+
 # +------- Neural Numberplate detector/reader -------+
 # +--------------------------------------------------+
+print(f"[*] DEBUG: Loading Numberplate Reader.")
 # ENV's
 MODULE_NUMBERPLATE_READER =  os.getenv('MODULE_NUMBERPLATE_READER', "false").lower() == "true"
 
@@ -459,29 +461,25 @@ def processNumberplateDetections(frame, NP_detectionsJson, detectionOffset=[0,0]
             # Crop numberplate image out of frame
             cropped_np_image = frame[y1:y2, x1:x2]
             
+
             # Save to directory the numberplate
-            timeNow = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
-            md5_hash = hashlib.md5(cropped_np_image.tobytes()).hexdigest()
-            cv2.imwrite(f'./saved_numberplates/{timeNow}_{md5_hash[:16]}.jpg', cropped_np_image)
+            if(SAVE_NUMBERPLATE_IMAGES):
+                timeNow = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+                md5_hash = hashlib.md5(cropped_np_image.tobytes()).hexdigest()
+                cv2.imwrite(f'./saved_numberplates/{timeNow}_{md5_hash[:16]}.jpg', cropped_np_image)
+
 
             # Preprocess cropped numberplate image
             # cropped_np_image = preprocess_image(cropped_np_image)
 
+
             # Send cropped numberplate for OCR reading
             NP_detectionTextJson = neuralLPReader_sendFrame(cropped_np_image)
-
-            # V1
-            # numberplateReading = NP_detectionTextJson["detection"] 
-
-            # V2
             sorted_detections = sorted(NP_detectionTextJson, key=lambda char: char['bbox']['x1'])
             numberplateReading = ''.join(char['class'] for char in sorted_detections)
-            
-
-
-            
             # print(json.dumps(NP_detectionTextJson, indent=4))
             
+
             if(len(numberplateReading) > 2):
                 # Get possible numberplate texts
                 possibleNumberplates = generatePossibleNumberplates(numberplateReading)
@@ -494,6 +492,8 @@ def processNumberplateDetections(frame, NP_detectionsJson, detectionOffset=[0,0]
                         print(f"[*] Sent opening signal by reading: {numberplateReading}, correction trigered: {possibleNumberplate}")
                         break
  
+
+
         # Plot boxes around all detections
         label = f'{detectionName} {detectionConfidence:.2f}'
         if(numberplateReading != ""):
