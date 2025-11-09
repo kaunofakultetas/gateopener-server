@@ -1,10 +1,10 @@
-FROM ultralytics/ultralytics:8.2.59
+FROM ultralytics/ultralytics:8.3.226
 
 WORKDIR /app
 
 RUN pip install --no-cache-dir          \
-    "imagezmq==1.1.1"                   \
-    "dill==0.3.8"
+    "imagezmq==1.2.0"                   \
+    "dill==0.3.9"
 
 COPY . .
 
