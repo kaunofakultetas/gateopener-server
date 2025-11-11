@@ -792,7 +792,7 @@ def generatePossibleNumberplates(numberplateReading):
             numberplateNumbers = possibleNumberplate[3:6]
 
             # Fix letters side
-            for replacement in [["0", "O"], ["0", "D"], ["1", "I"], ["2", "Z"], ["4", "A"], ["7", "T"], ["7", "Z"], ["8", "B"], ["8", "M"], ["W", "A"]]:
+            for replacement in [["0", "O"], ["0", "D"], ["1", "I"], ["2", "Z"], ["4", "A"], ["7", "T"], ["7", "Z"], ["8", "B"], ["8", "M"], ["W", "A"], ["V", "Y"], ["Y", "V"]]:
                 modNumberplateLetters = numberplateLetters.replace(replacement[0], replacement[1])
                 if(modNumberplateLetters + numberplateNumbers not in possibleNumberplates):
                     possibleNumberplates.append(modNumberplateLetters + numberplateNumbers)
