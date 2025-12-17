@@ -1,4 +1,4 @@
-FROM ultralytics/ultralytics:8.3.235
+FROM ultralytics/ultralytics:8.3.239
 
 WORKDIR /app
 
