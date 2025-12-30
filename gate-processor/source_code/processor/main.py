@@ -20,7 +20,7 @@ import zmq
 
 # ENV's
 SAVE_NUMBERPLATE_IMAGES = os.getenv('SAVE_NUMBERPLATE_IMAGES', "false").lower() == "true"
-
+GATEOPENER_API_KEY = os.getenv('GATEOPENER_API_KEY', '')
 
 
 
@@ -405,7 +405,7 @@ if NEURAL_NP_READER_HOST_PORT is None       and MODULE_NUMBERPLATE_READER == Tru
 if(MODULE_NUMBERPLATE_READER):
     senderNpDetector = imagezmq.ImageSender(connect_to=f"tcp://{NEURAL_NP_DETECTOR_HOST_PORT}")
     senderNpReader = imagezmq.ImageSender(connect_to=f"tcp://{NEURAL_NP_READER_HOST_PORT}")
-    allowedNumberPlates = json.loads(requests.get(ALLOWED_NUMBERPLATES_API).text)
+    allowedNumberPlates = json.loads(requests.get(ALLOWED_NUMBERPLATES_API, headers={'X-API-Key': GATEOPENER_API_KEY}).text)
 
 
 
@@ -571,7 +571,7 @@ def openRequestSender_iter(frame, triggerGateOpenSignal, capturedNumberplate="")
 
             if(openRequestLimiter == 0):
                 openRequestLimiter = OPENER_REQUEST_LIMITER_FRAME_COUNT
-                requests.get(OPENER_REQUEST_URL + "?numberplate=" + capturedNumberplate, timeout=1)
+                requests.get(OPENER_REQUEST_URL + "?numberplate=" + capturedNumberplate, headers={'X-API-Key': GATEOPENER_API_KEY}, timeout=1)
         
         elif(openRequestLimiter > 0):
             backgroundColor = [0, 165, 255] # Orange
@@ -853,7 +853,7 @@ while True:
         updateAllowedFrameCounter += 1
         if(updateAllowedFrameCounter % int((300 * CAMERA_STREAM_FRAMERATE)/PROCESS_EVERY_N_TH_FRAME) == 0):
             try:
-                allowedNumberPlates = json.loads(requests.get(ALLOWED_NUMBERPLATES_API).text)
+                allowedNumberPlates = json.loads(requests.get(ALLOWED_NUMBERPLATES_API, headers={'X-API-Key': GATEOPENER_API_KEY}).text)
             except:
                 pass
 
