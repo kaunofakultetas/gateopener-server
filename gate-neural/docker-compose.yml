@@ -40,7 +40,8 @@ services:
       context: ./source_code/ultralytics-yolo
       dockerfile: Dockerfile.cpu
     environment:
-      DETECT_WEIGHTS: yolo11l.pt
+      DETECT_WEIGHTS: yolo26l.pt
+      # DETECT_WEIGHTS: yolo11l.pt
       DETECT_IMGSZ: "320"
       DETECT_CONF_THRES: "0.40"
 
