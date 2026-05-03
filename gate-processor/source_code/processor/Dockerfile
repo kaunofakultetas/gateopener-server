@@ -1,16 +1,16 @@
-FROM python:3.12.1
+FROM python:3.14.4
 
 WORKDIR /app
 
 # Install OpenCV dependencies
 RUN apt-get update &&                       \
-    apt-get install -y libgl1-mesa-glx &&   \
+    apt-get install -y libgl1 &&            \
     rm -rf /var/lib/apt/lists/*
 
 # Base
 RUN pip install --no-cache-dir              \
-    "opencv-python==4.10.0.84"              \
-    "requests==2.32.3"
+    "opencv-python==4.13.0.92"              \
+    "requests==2.33.1"
 
 # Flask Streamer
 RUN pip install --no-cache-dir              \
