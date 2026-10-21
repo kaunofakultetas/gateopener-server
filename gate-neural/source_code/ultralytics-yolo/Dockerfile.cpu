@@ -1,4 +1,4 @@
-FROM ultralytics/ultralytics:8.4.102-cpu
+FROM ultralytics/ultralytics:8.4.183-cpu
 
 WORKDIR /app
 
